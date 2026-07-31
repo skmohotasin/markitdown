@@ -129,6 +129,10 @@
       animation: fade 0.35s ease both;
     }
 
+    .file-name.active {
+      display: block;
+    }
+
     @keyframes fade {
       from { opacity: 0; }
       to { opacity: 1; }
@@ -232,6 +236,7 @@
     function syncFile() {
       const file = input.files && input.files[0];
       fileName.textContent = file ? file.name : "";
+      fileName.classList.toggle("active", Boolean(file));
       submit.disabled = !file;
     }
 

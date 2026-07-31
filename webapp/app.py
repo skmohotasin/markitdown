@@ -87,5 +87,8 @@ def convert():
 
 
 if __name__ == "__main__":
+    # Always pick up template/CSS edits without a manual restart.
+    app.config["TEMPLATES_AUTO_RELOAD"] = True
+    app.jinja_env.auto_reload = True
     print("MarkItDown local UI -> http://127.0.0.1:5000")
-    app.run(host="127.0.0.1", port=5000, debug=False)
+    app.run(host="127.0.0.1", port=5000, debug=True, use_reloader=True)
