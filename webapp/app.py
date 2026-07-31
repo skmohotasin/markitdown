@@ -35,8 +35,20 @@ ALLOWED_EXTENSIONS = {
 app = Flask(__name__)
 app.secret_key = "markitdown-local-dev"
 app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # 50 MB
+app.config["TEMPLATES_AUTO_RELOAD"] = True
+app.jinja_env.auto_reload = True
+app.jinja_env.cache = None
 
 md = MarkItDown()
+
+
+@app.after_request
+def disable_caching(response):
+    """Keep browser from sticking to an old HTML/CSS/JS snapshot during local edits."""
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 
 def allowed_file(filename: str) -> bool:
@@ -87,8 +99,5 @@ def convert():
 
 
 if __name__ == "__main__":
-    # Always pick up template/CSS edits without a manual restart.
-    app.config["TEMPLATES_AUTO_RELOAD"] = True
-    app.jinja_env.auto_reload = True
     print("MarkItDown local UI -> http://127.0.0.1:5000")
-    app.run(host="127.0.0.1", port=5000, debug=True, use_reloader=True)
+    app.run(host="127.0.0.1", port=5000, debug=True, use_reloader=False)
