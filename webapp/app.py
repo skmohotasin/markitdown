@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import io
+import sys
 import tempfile
+import threading
+import webbrowser
 from pathlib import Path
 
-from flask import Flask, render_template, request, send_file, flash, redirect, url_for
+from flask import Flask, flash, redirect, render_template, request, send_file, url_for
 from markitdown import MarkItDown
 from werkzeug.utils import secure_filename
 
@@ -32,12 +35,24 @@ ALLOWED_EXTENSIONS = {
     ".mp3",
 }
 
-app = Flask(__name__)
+HOST = "127.0.0.1"
+PORT = 5000
+IS_FROZEN = getattr(sys, "frozen", False)
+
+
+def app_base_dir() -> Path:
+    if IS_FROZEN:
+        return Path(sys._MEIPASS)  # type: ignore[attr-defined]
+    return Path(__file__).resolve().parent
+
+
+app = Flask(__name__, template_folder=str(app_base_dir() / "templates"))
 app.secret_key = "markitdown-local-dev"
 app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # 50 MB
-app.config["TEMPLATES_AUTO_RELOAD"] = True
-app.jinja_env.auto_reload = True
-app.jinja_env.cache = None
+app.config["TEMPLATES_AUTO_RELOAD"] = not IS_FROZEN
+app.jinja_env.auto_reload = not IS_FROZEN
+if not IS_FROZEN:
+    app.jinja_env.cache = None
 
 md = MarkItDown()
 
@@ -103,6 +118,13 @@ def convert():
     )
 
 
+def open_browser() -> None:
+    webbrowser.open(f"http://{HOST}:{PORT}")
+
+
 if __name__ == "__main__":
-    print("MarkItDown local UI -> http://127.0.0.1:5000")
-    app.run(host="127.0.0.1", port=5000, debug=True, use_reloader=False)
+    url = f"http://{HOST}:{PORT}"
+    print(f"MarkItDown local UI -> {url}")
+    print("Close this window to stop the app.")
+    threading.Timer(1.0, open_browser).start()
+    app.run(host=HOST, port=PORT, debug=not IS_FROZEN, use_reloader=False)
