@@ -62,15 +62,21 @@ def index():
 
 @app.route("/convert", methods=["POST"])
 def convert():
+    wants_json = request.headers.get("X-Requested-With") == "fetch"
+
+    def fail(message: str, status: int = 400):
+        if wants_json:
+            return {"error": message}, status
+        flash(message)
+        return redirect(url_for("index"))
+
     uploaded = request.files.get("file")
     if uploaded is None or uploaded.filename is None or uploaded.filename.strip() == "":
-        flash("Please choose a file to convert.")
-        return redirect(url_for("index"))
+        return fail("Please choose a file to convert.")
 
     filename = secure_filename(uploaded.filename)
     if not allowed_file(filename):
-        flash(f"Unsupported file type: {Path(filename).suffix or '(none)'}")
-        return redirect(url_for("index"))
+        return fail(f"Unsupported file type: {Path(filename).suffix or '(none)'}")
 
     suffix = Path(filename).suffix.lower()
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
@@ -82,8 +88,7 @@ def convert():
         markdown_text = result.text_content or ""
     except Exception as exc:  # noqa: BLE001 — surface conversion errors in UI
         tmp_path.unlink(missing_ok=True)
-        flash(f"Conversion failed: {exc}")
-        return redirect(url_for("index"))
+        return fail(f"Conversion failed: {exc}", status=500)
     finally:
         tmp_path.unlink(missing_ok=True)
 
